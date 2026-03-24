@@ -273,12 +273,77 @@
       margin-left: 3px;
     }
 
-    .loading-msg,
     .empty-state {
       text-align: center;
       padding: 60px 20px;
       color: var(--text-light);
       font-size: 15px;
+    }
+
+    .ad-card-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--teal-faint);
+      color: var(--mid);
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      opacity: 0.55;
+      pointer-events: none;
+    }
+
+    .ad-card-placeholder svg {
+      width: 32px;
+      height: 32px;
+      opacity: 0.5;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 28px 0 8px;
+      flex-wrap: wrap;
+    }
+
+    .page-btn {
+      padding: 8px 16px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-light);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-width: 38px;
+    }
+
+    .page-btn:hover:not(:disabled) {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
+    .page-btn.active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: var(--white);
+    }
+
+    .page-btn:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .page-info {
+      font-size: 13px;
+      color: var(--text-light);
+      font-family: 'DM Sans', sans-serif;
     }
 
     /* Lightbox */
@@ -370,6 +435,7 @@
 
     <div class="ad-grid" id="adGrid"></div>
     <p class="empty-state" id="emptyState" style="display:none">No ads match the current filters.</p>
+    <nav class="pagination" id="pagination" aria-label="Page navigation"></nav>
   </main>
 
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
@@ -378,9 +444,8 @@
   </div>
 
   <script>
-    // Set to your R2 public URL once uploaded, e.g. "https://pub-XXXX.r2.dev"
-    // Leave empty string to skip R2 and use local/CDN fallbacks only.
     const R2_BASE = "https://pub-67f4bab315e9467d90ae1d113cac20f7.r2.dev";
+    const PAGE_SIZE = 50;
 
     // Step 1: BRANDS constant and state object
     const BRANDS = [
@@ -456,40 +521,70 @@
       });
     }
 
+    const MIN_IMG_SIZE = 200; // px — anything smaller is an icon/thumbnail, not a real ad image
+
+    function showPlaceholder(card) {
+      // Clear existing img and overlays, replace with a muted placeholder
+      card.innerHTML = '';
+      card.classList.add('ad-card-placeholder');
+      card.style.cursor = 'default';
+      card.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M3 16l5-5 4 4 3-3 6 6"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+        </svg>
+        <span>No preview</span>`;
+    }
+
     function buildImageCard(ad) {
       const isActive = resolveActive(ad);
       const days = parseDays(ad.started);
 
       const adId = ad.id;
       const dir = state.brand.dir;
-      const localSrc = `campaigns/${dir}/images/${adId}.jpg`;
-      const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
 
       const card = document.createElement('div');
       card.className = 'ad-card';
 
-      const r2Src = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
-      const r2Src2 = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
-      const cdnSrc = (ad.images && ad.images[0]) || null;
-      // _2.jpg is the only format the scraper saves locally/uploads to R2,
-      // so try it first to avoid a guaranteed 404 on the plain .jpg path.
-      const srcs = [r2Src2, r2Src, local2Src, localSrc, cdnSrc].filter(Boolean);
+      // Only _2.jpg is saved by the scraper/uploaded to R2.
+      // Omitting the plain .jpg R2 URL — it causes ERR_BLOCKED_BY_ORB
+      // (browser blocks 404 HTML responses as images), stalling the fallback chain.
+      const r2Src2    = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
+      const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
+      const cdnSrc    = (ad.images && ad.images[0]) || null;
+      const srcs = [r2Src2, local2Src, cdnSrc].filter(Boolean);
       let srcIdx = 0;
 
       const img = document.createElement('img');
       img.alt = '';
-      img.src = srcs[srcIdx];
+
+      img.onload = function () {
+        // Reject icon-sized images (thumbnails / 60×60 placeholders)
+        if (img.naturalWidth < MIN_IMG_SIZE || img.naturalHeight < MIN_IMG_SIZE) {
+          srcIdx++;
+          if (srcIdx < srcs.length) {
+            img.src = srcs[srcIdx]; // try next source
+          } else {
+            showPlaceholder(card);
+          }
+        }
+      };
+
       img.onerror = function () {
         srcIdx++;
         if (srcIdx < srcs.length) {
           img.src = srcs[srcIdx];
         } else {
-          card.remove();
+          showPlaceholder(card);
         }
       };
+
+      img.src = srcs[srcIdx];
       card.appendChild(img);
 
       card.addEventListener('click', () => {
+        if (card.classList.contains('ad-card-placeholder')) return;
         const expanded = document.createElement('img');
         expanded.src = img.src;
         expanded.alt = '';
@@ -604,13 +699,23 @@
       grid.innerHTML = '';
       if (filtered.length === 0) {
         empty.style.display = 'block';
+        document.getElementById('pagination').innerHTML = '';
         return;
       }
       empty.style.display = 'none';
 
-      filtered.forEach(ad => {
+      const start = (state.page - 1) * PAGE_SIZE;
+      const pageItems = filtered.slice(start, start + PAGE_SIZE);
+
+      pageItems.forEach(ad => {
         const card = state.media === 'videos' ? buildVideoCard(ad) : buildImageCard(ad);
         grid.appendChild(card);
+      });
+
+      renderPagination(filtered.length, state.page, (newPage) => {
+        state.page = newPage;
+        renderGrid(ads);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
 
@@ -620,12 +725,13 @@
     async function loadAndRender() {
       const gen = ++_renderGen;
       const grid = document.getElementById('adGrid');
-      grid.innerHTML = '<p class="loading-msg">Loading\u2026</p>';
+      grid.innerHTML = '<p class="loading-msg">Loading…</p>';
       document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('pagination').innerHTML = '';
       const ads = await loadBrand(state.brand);
       if (gen !== _renderGen) return; // superseded by a later call
       _currentAds = ads;
-      renderGrid(_currentAds);
+      renderGrid(_currentAds, true);
     }
 
     function init() {
@@ -646,13 +752,13 @@
         if (filter === 'media') {
           loadAndRender();
         } else {
-          renderGrid(_currentAds);
+          renderGrid(_currentAds, true);
         }
       });
 
       document.getElementById('sortSelect').addEventListener('change', e => {
         state.sort = e.target.value;
-        renderGrid(_currentAds);
+        renderGrid(_currentAds, true);
       });
     }
 
