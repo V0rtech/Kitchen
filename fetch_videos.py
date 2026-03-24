@@ -32,9 +32,9 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 WORKERS      = 3                # Concurrent browsers
-MAX_VIDEOS   = 150              # Max video files saved per brand
+MAX_VIDEOS   = 1000              # Max video files saved per brand
 MAX_SCROLLS  = 80               # Safety cap on scroll iterations
-SCROLL_PAUSE = 3.0              # Slightly longer pause (videos are heavier)
+SCROLL_PAUSE = 5.0              # Slightly longer pause (videos are heavier)
 HEADLESS     = True
 COUNTRY      = "US"
 START_DATE   = "2023-01-01"
@@ -45,19 +45,19 @@ MIN_SIZE_KB  = 50               # Skip intercepted files smaller than this (like
 BRANDS = [
     {"name": "Caraway",         "slug": "caraway",         "page_id": "2290435917939387"},
     {"name": "Our Place",       "slug": "our-place",       "page_id": "247732222787053"},
-    {"name": "HexClad",         "slug": "hexclad",         "page_id": ""},
+    {"name": "HexClad",         "slug": "hexclad",         "page_id": "306050696452078"},
     {"name": "Made In",         "slug": "made-in",         "page_id": "1360608127355960"},
     {"name": "Great Jones",     "slug": "great-jones",     "page_id": "1826080967456334"},
-    {"name": "Misen",           "slug": "misen",           "page_id": ""},
-    {"name": "Williams Sonoma", "slug": "williams-sonoma", "page_id": ""},
-    {"name": "Sur La Table",    "slug": "sur-la-table",    "page_id": ""},
-    {"name": "Lodge Cast Iron", "slug": "lodge",           "page_id": ""},
+    {"name": "Misen",           "slug": "misen",           "page_id": "494944417330084"},
+    {"name": "Williams Sonoma", "slug": "williams-sonoma", "page_id": "36343869811"},
+    {"name": "Sur La Table",    "slug": "sur-la-table",    "page_id": "136304690471"},
+    {"name": "Lodge Cast Iron", "slug": "lodge",           "page_id": "121779540495"},
     {"name": "Wayfair",         "slug": "wayfair",         "page_id": "215686331786877"},
     {"name": "Crate and Barrel","slug": "crate-barrel",    "page_id": "7769066516"},
     {"name": "OXO",             "slug": "oxo",             "page_id": "78294151872"},
     {"name": "Food52",          "slug": "food52",          "page_id": "133148554015"},
-    {"name": "Bellroy",         "slug": "bellroy",         "page_id": ""},
-    {"name": "Allbirds",        "slug": "allbirds",        "page_id": ""},
+    {"name": "Bellroy",         "slug": "bellroy",         "page_id": "113833593676"},
+    {"name": "Allbirds",        "slug": "allbirds",        "page_id": "778794852137593"},
 ]
 
 UA = (
@@ -135,7 +135,7 @@ SCRAPE_JS = """
         ad.snapshot_url = links.length ? links[0].href : '';
 
         // Active status — appears as a standalone line before Library ID
-        const activeM = card.innerText.match(/\n(Active|Inactive)\n/);
+        const activeM = card.innerText.match(/\\n(Active|Inactive)\\n/);
         ad.active = activeM ? activeM[1] === 'Active' : null;
 
         const dateM = card.innerText.match(/Started running on (.+)/);
@@ -204,6 +204,10 @@ def scrape_brand(brand: dict, video_dir: Path) -> list[dict]:
 
         try:
             body = response.body()
+        except Exception:
+            return  # response wasn't buffered (streamed/chunked) — skip silently
+
+        try:
             if len(body) < MIN_SIZE_KB * 1024:
                 return                          # skip tiny thumbnails
 
@@ -217,7 +221,7 @@ def scrape_brand(brand: dict, video_dir: Path) -> list[dict]:
             saved_count[0] += 1
             log(name, f"  Intercepted video {saved_count[0]}: {dest.name} ({len(body)//1024} KB)")
         except Exception as exc:
-            warnings.warn(f"Failed to save intercepted video: {exc}")
+            warnings.warn(f"Failed to save video: {exc}")
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(
@@ -254,7 +258,7 @@ def scrape_brand(brand: dict, video_dir: Path) -> list[dict]:
                 log(name, f"Reached {MAX_VIDEOS} video cap — stopping scroll.")
                 break
 
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.evaluate("var el = document.scrollingElement || document.body; if (el) window.scrollTo(0, el.scrollHeight)")
             time.sleep(SCROLL_PAUSE)
             dismiss_popups(page)
 
