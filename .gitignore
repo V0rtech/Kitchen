@@ -1,0 +1,5 @@
+upload_to_r2.py
+.claude/
+docs/
+*.env
+.env*
