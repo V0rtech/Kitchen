@@ -544,7 +544,7 @@
         if (srcIdx < srcs.length) {
           img.src = srcs[srcIdx];
         } else {
-          showPlaceholder(card);
+          card.remove();
         }
       };
 
@@ -594,7 +594,7 @@
 
       card.addEventListener('click', () => {
         const expanded = document.createElement('video');
-        expanded.src = localSrc;
+        expanded.src = videoSrc;
         expanded.controls = true;
         expanded.autoplay = true;
         expanded.muted = false;
@@ -663,7 +663,8 @@
       return out;
     }
 
-    function renderGrid(ads) {
+    function renderGrid(ads, resetPage) {
+      if (resetPage) state.page = 1;
       const grid = document.getElementById('adGrid');
       const empty = document.getElementById('emptyState');
       const filtered = applyFiltersAndSort(ads);
@@ -689,6 +690,54 @@
         renderGrid(ads);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
+    }
+
+    function renderPagination(total, currentPage, onPageChange) {
+      const container = document.getElementById('pagination');
+      container.innerHTML = '';
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+      if (totalPages <= 1) return;
+
+      function makeBtn(label, page, isActive, isDisabled) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'page-btn' + (isActive ? ' active' : '');
+        btn.textContent = label;
+        btn.disabled = isDisabled;
+        if (!isDisabled && !isActive) {
+          btn.addEventListener('click', () => onPageChange(page));
+        }
+        return btn;
+      }
+
+      container.appendChild(makeBtn('←', currentPage - 1, false, currentPage === 1));
+
+      // Page numbers with ellipsis around current
+      const range = [];
+      for (let i = 1; i <= totalPages; i++) {
+        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+          range.push(i);
+        } else if (range[range.length - 1] !== '…') {
+          range.push('…');
+        }
+      }
+      range.forEach(p => {
+        if (p === '…') {
+          const span = document.createElement('span');
+          span.className = 'page-info';
+          span.textContent = '…';
+          container.appendChild(span);
+        } else {
+          container.appendChild(makeBtn(String(p), p, p === currentPage, false));
+        }
+      });
+
+      const info = document.createElement('span');
+      info.className = 'page-info';
+      info.textContent = `${total} ads`;
+      container.appendChild(info);
+
+      container.appendChild(makeBtn('→', currentPage + 1, false, currentPage === totalPages));
     }
 
     let _currentAds = [];
