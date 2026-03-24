@@ -455,19 +455,20 @@
       const card = document.createElement('div');
       card.className = 'ad-card';
 
+      const cdnSrc = (ad.images && ad.images[0]) || null;
+      const srcs = [localSrc, local2Src, cdnSrc].filter(Boolean);
+      let srcIdx = 0;
+
       const img = document.createElement('img');
       img.alt = '';
       img.loading = 'lazy';
-      img.src = localSrc;
-      let triedLocal2 = false;
+      img.src = srcs[srcIdx];
       img.onerror = function() {
-        img.onerror = null;
-        if (!triedLocal2) {
-          triedLocal2 = true;
-          img.onerror = arguments.callee;
-          img.src = local2Src;
+        srcIdx++;
+        if (srcIdx < srcs.length) {
+          img.src = srcs[srcIdx];
         } else {
-          card.remove(); // no local file found — don't show the card
+          card.remove();
         }
       };
       card.appendChild(img);
