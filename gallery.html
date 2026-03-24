@@ -223,17 +223,17 @@
   </header>
 
   <main class="page-body">
-    <nav class="brand-selector" id="brandSelector"></nav>
+    <nav class="brand-selector" id="brandSelector" aria-label="Brand selector"></nav>
 
     <div class="filter-bar" id="filterBar">
       <div class="filter-group">
-        <button class="filter-btn active" data-filter="media" data-value="images">Images</button>
-        <button class="filter-btn" data-filter="media" data-value="videos">Videos</button>
+        <button type="button" class="filter-btn active" data-filter="media" data-value="images">Images</button>
+        <button type="button" class="filter-btn" data-filter="media" data-value="videos">Videos</button>
       </div>
       <div class="filter-group">
-        <button class="filter-btn active" data-filter="status" data-value="all">All</button>
-        <button class="filter-btn" data-filter="status" data-value="active">Active</button>
-        <button class="filter-btn" data-filter="status" data-value="inactive">Inactive</button>
+        <button type="button" class="filter-btn active" data-filter="status" data-value="all">All</button>
+        <button type="button" class="filter-btn" data-filter="status" data-value="active">Active</button>
+        <button type="button" class="filter-btn" data-filter="status" data-value="inactive">Inactive</button>
       </div>
       <div class="filter-group">
         <select class="sort-select" id="sortSelect">
