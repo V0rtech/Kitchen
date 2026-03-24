@@ -408,13 +408,14 @@
       img.alt = '';
       img.loading = 'lazy';
       img.src = localSrc;
+      const fallbacks = [local2Src, cdnSrc].filter(Boolean);
+      let fbIdx = 0;
       img.onerror = function() {
-        if (!img.src.includes('_2') && !img.src.startsWith('http')) {
-          img.src = local2Src;
-        } else if (cdnSrc && img.src !== cdnSrc) {
-          img.src = cdnSrc;
+        if (fbIdx < fallbacks.length) {
+          img.src = fallbacks[fbIdx++];
+        } else {
+          img.onerror = null;
         }
-        img.onerror = null;
       };
       card.appendChild(img);
 
