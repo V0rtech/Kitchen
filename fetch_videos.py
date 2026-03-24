@@ -114,7 +114,7 @@ SCRAPE_JS = """
         }
         if (!card) return;
 
-        const ad = { index: idx + 1, id: '', body: '', snapshot_url: '', started: '' };
+        const ad = { index: idx + 1, id: '', body: '', snapshot_url: '', started: '', active: null };
 
         const m = span.textContent.match(/Library ID:\\s*(\\d+)/);
         ad.id = m ? m[1] : ('card_' + String(idx + 1).padStart(4, '0'));
@@ -133,6 +133,10 @@ SCRAPE_JS = """
 
         const links = [...card.querySelectorAll('a[href*="/ads/"]')];
         ad.snapshot_url = links.length ? links[0].href : '';
+
+        // Active status — appears as a standalone line before Library ID
+        const activeM = card.innerText.match(/\n(Active|Inactive)\n/);
+        ad.active = activeM ? activeM[1] === 'Active' : null;
 
         const dateM = card.innerText.match(/Started running on (.+)/);
         ad.started = dateM ? dateM[1].trim() : '';

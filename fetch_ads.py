@@ -126,6 +126,7 @@ SCRAPE_JS = """
             images: [],
             snapshot_url: '',
             started: '',
+            active: null,
         };
 
         // Library / Ad ID
@@ -147,6 +148,10 @@ SCRAPE_JS = """
         // Snapshot / detail link
         const links = [...card.querySelectorAll('a[href*="/ads/"]')];
         ad.snapshot_url = links.length ? links[0].href : '';
+
+        // Active status — appears as a standalone line before Library ID
+        const activeM = card.innerText.match(/\n(Active|Inactive)\n/);
+        ad.active = activeM ? activeM[1] === 'Active' : null;
 
         // Start date (parsed from card text)
         const dateM = card.innerText.match(/Started running on (.+)/);
