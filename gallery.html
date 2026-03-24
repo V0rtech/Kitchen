@@ -399,7 +399,6 @@
       const dir       = state.brand.dir;
       const localSrc  = `campaigns/${dir}/images/${adId}.jpg`;
       const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
-      const cdnSrc    = (ad.images || [])[0] || '';
 
       const card = document.createElement('div');
       card.className = 'ad-card';
@@ -408,13 +407,15 @@
       img.alt = '';
       img.loading = 'lazy';
       img.src = localSrc;
-      const fallbacks = [local2Src, cdnSrc].filter(Boolean);
-      let fbIdx = 0;
+      let triedLocal2 = false;
       img.onerror = function() {
-        img.onerror = null; // clear before assigning new src to prevent re-entrant fire
-        if (fbIdx < fallbacks.length) {
-          img.onerror = arguments.callee; // re-arm for next failure
-          img.src = fallbacks[fbIdx++];
+        img.onerror = null;
+        if (!triedLocal2) {
+          triedLocal2 = true;
+          img.onerror = arguments.callee;
+          img.src = local2Src;
+        } else {
+          card.remove(); // no local file found — don't show the card
         }
       };
       card.appendChild(img);
@@ -426,23 +427,20 @@
     function buildVideoCard(ad) {
       const isActive = resolveActive(ad);
       const days     = parseDays(ad.started);
-      const src      = (ad.video_srcs || [])[0] || '';
+      const localSrc = `campaigns/${state.brand.dir}/videos/${ad.id}.mp4`;
 
       const card = document.createElement('div');
       card.className = 'ad-card';
 
-      if (src) {
-        const video = document.createElement('video');
-        video.src = src;
-        video.muted = true;
-        video.playsInline = true;
-        video.preload = 'metadata';
-        card.addEventListener('mouseenter', () => video.play().catch(() => {}));
-        card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
-        card.appendChild(video);
-      } else {
-        card.style.background = '#2a2a2a';
-      }
+      const video = document.createElement('video');
+      video.src = localSrc;
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = 'metadata';
+      video.addEventListener('error', () => card.remove());
+      card.addEventListener('mouseenter', () => video.play().catch(() => {}));
+      card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+      card.appendChild(video);
 
       const play = document.createElement('div');
       play.className = 'play-icon';
