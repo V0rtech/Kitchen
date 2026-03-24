@@ -286,12 +286,16 @@
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.88);
+      background: rgba(0, 0, 0, 0.88);
       z-index: 1000;
       align-items: center;
       justify-content: center;
     }
-    .lightbox.open { display: flex; }
+
+    .lightbox.open {
+      display: flex;
+    }
+
     .lightbox-inner {
       position: relative;
       max-width: 90vw;
@@ -300,6 +304,7 @@
       align-items: center;
       justify-content: center;
     }
+
     .lightbox-inner img,
     .lightbox-inner video {
       max-width: 90vw;
@@ -308,11 +313,12 @@
       object-fit: contain;
       display: block;
     }
+
     .lightbox-close {
       position: fixed;
       top: 18px;
       right: 22px;
-      background: rgba(255,255,255,0.12);
+      background: rgba(255, 255, 255, 0.12);
       border: none;
       color: #fff;
       font-size: 24px;
@@ -326,7 +332,10 @@
       justify-content: center;
       transition: background 0.15s;
     }
-    .lightbox-close:hover { background: rgba(255,255,255,0.25); }
+
+    .lightbox-close:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
   </style>
 </head>
 
@@ -375,7 +384,7 @@
 
     // Step 1: BRANDS constant and state object
     const BRANDS = [
-      { name: 'Caraway', dir: 'Caraway' },
+      { name: 'Caraway', dir: 'caraway' },
       { name: 'Our Place', dir: 'our-place' },
       { name: 'HexClad', dir: 'hexclad' },
       { name: 'Made In', dir: 'made-in' },
@@ -449,17 +458,17 @@
 
     function buildImageCard(ad) {
       const isActive = resolveActive(ad);
-      const days     = parseDays(ad.started);
+      const days = parseDays(ad.started);
 
-      const adId      = ad.id;
-      const dir       = state.brand.dir;
-      const localSrc  = `campaigns/${dir}/images/${adId}.jpg`;
+      const adId = ad.id;
+      const dir = state.brand.dir;
+      const localSrc = `campaigns/${dir}/images/${adId}.jpg`;
       const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
 
       const card = document.createElement('div');
       card.className = 'ad-card';
 
-      const r2Src  = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
+      const r2Src = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
       const r2Src2 = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
       const cdnSrc = (ad.images && ad.images[0]) || null;
       const srcs = [r2Src, r2Src2, localSrc, local2Src, cdnSrc].filter(Boolean);
@@ -469,7 +478,7 @@
       img.alt = '';
       img.loading = 'lazy';
       img.src = srcs[srcIdx];
-      img.onerror = function() {
+      img.onerror = function () {
         srcIdx++;
         if (srcIdx < srcs.length) {
           img.src = srcs[srcIdx];
@@ -492,8 +501,8 @@
 
     function buildVideoCard(ad) {
       const isActive = resolveActive(ad);
-      const days     = parseDays(ad.started);
-      const dir      = state.brand.dir;
+      const days = parseDays(ad.started);
+      const dir = state.brand.dir;
       const videoSrc = R2_BASE
         ? `${R2_BASE}/campaigns/${dir}/videos/${ad.id}.mp4`
         : `campaigns/${dir}/videos/${ad.id}.mp4`;
@@ -507,7 +516,7 @@
       video.playsInline = true;
       video.preload = 'metadata';
       video.addEventListener('error', () => card.remove());
-      card.addEventListener('mouseenter', () => video.play().catch(() => {}));
+      card.addEventListener('mouseenter', () => video.play().catch(() => { }));
       card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
       card.appendChild(video);
 
@@ -557,13 +566,13 @@
       let out = ads.filter(ad => {
         if (state.status === 'all') return true;
         const a = resolveActive(ad);
-        if (state.status === 'active')   return a === true;
+        if (state.status === 'active') return a === true;
         if (state.status === 'inactive') return a === false;
         return true;
       });
 
       const getDays = ad => parseDays(ad.started);
-      const isAct   = ad => resolveActive(ad) === true;
+      const isAct = ad => resolveActive(ad) === true;
 
       if (state.sort === 'newest') {
         out.sort((a, b) => (getDays(a) ?? Infinity) - (getDays(b) ?? Infinity));
@@ -587,7 +596,7 @@
     }
 
     function renderGrid(ads) {
-      const grid  = document.getElementById('adGrid');
+      const grid = document.getElementById('adGrid');
       const empty = document.getElementById('emptyState');
       const filtered = applyFiltersAndSort(ads);
 
@@ -647,7 +656,7 @@
     }
 
     // ── Lightbox ──────────────────────────────────────────────────
-    const lightbox      = document.getElementById('lightbox');
+    const lightbox = document.getElementById('lightbox');
     const lightboxInner = document.getElementById('lightboxInner');
 
     function openLightbox(el) {
