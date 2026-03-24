@@ -345,7 +345,8 @@
 
     // Step 2: loadBrand() function
     async function loadBrand(brand) {
-      const file = state.media === 'videos' ? 'video_ads.json' : 'ads.json';
+      const media = state.media; // capture before await to avoid race on rapid toggle
+      const file = media === 'videos' ? 'video_ads.json' : 'ads.json';
       const url = `campaigns/${brand.dir}/${file}`;
       try {
         const res = await fetch(url);
