@@ -280,6 +280,53 @@
       color: var(--text-light);
       font-size: 15px;
     }
+
+    /* Lightbox */
+    .lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox.open { display: flex; }
+    .lightbox-inner {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lightbox-inner img,
+    .lightbox-inner video {
+      max-width: 90vw;
+      max-height: 90vh;
+      border-radius: 10px;
+      object-fit: contain;
+      display: block;
+    }
+    .lightbox-close {
+      position: fixed;
+      top: 18px;
+      right: 22px;
+      background: rgba(255,255,255,0.12);
+      border: none;
+      color: #fff;
+      font-size: 24px;
+      line-height: 1;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .lightbox-close:hover { background: rgba(255,255,255,0.25); }
   </style>
 </head>
 
@@ -315,6 +362,11 @@
     <div class="ad-grid" id="adGrid"></div>
     <p class="empty-state" id="emptyState" style="display:none">No ads match the current filters.</p>
   </main>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+    <div class="lightbox-inner" id="lightboxInner"></div>
+    <button type="button" class="lightbox-close" id="lightboxClose" aria-label="Close">&#x2715;</button>
+  </div>
 
   <script>
     // Step 1: BRANDS constant and state object
@@ -420,6 +472,13 @@
       };
       card.appendChild(img);
 
+      card.addEventListener('click', () => {
+        const expanded = document.createElement('img');
+        expanded.src = img.src;
+        expanded.alt = '';
+        openLightbox(expanded);
+      });
+
       appendCardOverlays(card, isActive, ad.started, days);
       return card;
     }
@@ -445,6 +504,16 @@
       const play = document.createElement('div');
       play.className = 'play-icon';
       card.appendChild(play);
+
+      card.addEventListener('click', () => {
+        const expanded = document.createElement('video');
+        expanded.src = localSrc;
+        expanded.controls = true;
+        expanded.autoplay = true;
+        expanded.muted = false;
+        expanded.playsInline = true;
+        openLightbox(expanded);
+      });
 
       appendCardOverlays(card, isActive, ad.started, days);
       return card;
@@ -566,6 +635,30 @@
         renderGrid(_currentAds);
       });
     }
+
+    // ── Lightbox ──────────────────────────────────────────────────
+    const lightbox      = document.getElementById('lightbox');
+    const lightboxInner = document.getElementById('lightboxInner');
+
+    function openLightbox(el) {
+      lightboxInner.innerHTML = '';
+      lightboxInner.appendChild(el);
+      lightbox.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+      // pause any video before removing
+      const v = lightboxInner.querySelector('video');
+      if (v) { v.pause(); v.currentTime = 0; }
+      lightboxInner.innerHTML = '';
+      lightbox.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+    lightbox.addEventListener('click', e => { if (e.target === lightbox) closeLightbox(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
     init();
   </script>
