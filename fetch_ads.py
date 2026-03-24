@@ -141,9 +141,15 @@ SCRAPE_JS = """
         ad.text = card.innerText.slice(0, 600).trim();
 
         // Images — Facebook serves creatives from the scontent CDN
+        // Require a valid image extension in the path (before '?') to filter out
+        // truncated URLs that Facebook's JS hasn't finished constructing yet
         ad.images = [...card.querySelectorAll('img')]
-            .map(img => img.src)
-            .filter(src => src && src.includes('scontent') && src.length > 60);
+            .map(img => img.src.replaceAll('&amp;', '&'))
+            .filter(src => {
+                if (!src || !src.includes('scontent')) return false;
+                const path = src.split('?')[0];
+                return /\.(jpg|jpeg|png|webp)$/i.test(path) && src.includes('oh=');
+            });
 
         // Snapshot / detail link
         const links = [...card.querySelectorAll('a[href*="/ads/"]')];
@@ -199,6 +205,10 @@ def download_image(url: str, dest: Path) -> bool:
                 continue
             if r.status_code != 200:
                 warnings.warn(f"HTTP {r.status_code} for {url[:80]}")
+                return False
+            if r.url != url:
+                # Redirected — hash mismatch, Facebook returned error/placeholder
+                warnings.warn(f"Redirected (bad hash) for {url[:80]}")
                 return False
             ct = r.headers.get("Content-Type", "")
             if "image" not in ct and "octet" not in ct:
@@ -299,7 +309,7 @@ def scrape_brand(brand: dict) -> list[dict]:
             page.wait_for_load_state("networkidle", timeout=10_000)
         except Exception:
             pass
-        time.sleep(1.5)
+        time.sleep(4)  # Extra wait for React to finish setting img.src values
 
         # If Facebook redirected us away (login wall, consent) the context dies.
         # Check we're still on the ads library before extracting.

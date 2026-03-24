@@ -24,6 +24,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import quote
 
+import requests
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
 # Force UTF-8 output on Windows
@@ -190,36 +191,39 @@ def scrape_brand(brand: dict, video_dir: Path) -> list[dict]:
     seen_urls   = set()
     ad_map      = {}            # video_url -> ad_id (filled in after card scrape)
 
-    # ── Network interception: capture video responses as they stream ───────────
+    # ── Network interception: collect video URLs as the browser sees them ────────
     def handle_response(response):
         if saved_count[0] >= MAX_VIDEOS:
             return
-        resp_url  = response.url
-        ct        = response.headers.get("content-type", "")
+        resp_url = response.url
+        ct       = response.headers.get("content-type", "")
         if "video" not in ct and not resp_url.endswith(".mp4"):
             return
         if resp_url in seen_urls:
             return
         seen_urls.add(resp_url)
 
+        # Facebook serves video via range requests (206 Partial Content), so
+        # response.body() is unavailable. Download the full URL with requests instead.
         try:
-            body = response.body()
-        except Exception:
-            return  # response wasn't buffered (streamed/chunked) — skip silently
-
-        try:
+            r = requests.get(
+                resp_url, timeout=60, stream=True,
+                headers={"User-Agent": UA, "Referer": "https://www.facebook.com/"}
+            )
+            if r.status_code not in (200, 206):
+                return
+            body = b"".join(r.iter_content(65536))
             if len(body) < MIN_SIZE_KB * 1024:
-                return                          # skip tiny thumbnails
+                return                          # skip tiny thumbnails / stubs
 
-            # Use ad_id if we've already mapped this URL, else generate a name
-            ad_id    = ad_map.get(resp_url, f"video_{saved_count[0]+1:04d}")
-            dest     = video_dir / f"{ad_id}.mp4"
+            ad_id = ad_map.get(resp_url, f"video_{saved_count[0]+1:04d}")
+            dest  = video_dir / f"{ad_id}.mp4"
             if dest.exists():
                 return
 
             dest.write_bytes(body)
             saved_count[0] += 1
-            log(name, f"  Intercepted video {saved_count[0]}: {dest.name} ({len(body)//1024} KB)")
+            log(name, f"  Saved video {saved_count[0]}: {dest.name} ({len(body)//1024} KB)")
         except Exception as exc:
             warnings.warn(f"Failed to save video: {exc}")
 
