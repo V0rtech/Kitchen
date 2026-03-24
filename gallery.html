@@ -478,10 +478,12 @@
       img.alt = '';
       img.src = srcs[srcIdx];
       img.onerror = function () {
+        console.log('onerror', adId, 'srcIdx was', srcIdx, 'failed:', img.src.slice(-60));
         srcIdx++;
         if (srcIdx < srcs.length) {
           img.src = srcs[srcIdx];
         } else {
+          console.log('removing card', adId);
           card.remove();
         }
       };
