@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campaign Gallery</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --teal: #0F6E56;
+      --teal-light: #13896B;
+      --teal-dim: #0a4f3e;
+      --teal-bg: #f0f9f6;
+      --teal-faint: #e6f4f0;
+      --accent: #E8F5F0;
+      --gold: #C8922A;
+      --warn: #D94F3B;
+      --mid: #6B7A99;
+      --text: #1A1E2E;
+      --text-light: #4A5272;
+      --border: #E2EAE7;
+      --white: #FFFFFF;
+      --card-shadow: 0 2px 16px rgba(15, 110, 86, 0.08);
+      --card-shadow-hover: 0 8px 32px rgba(15, 110, 86, 0.16);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--teal-bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .page-header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .back-link {
+      color: var(--teal);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .back-link:hover { text-decoration: underline; }
+    .page-title {
+      font-family: 'Fraunces', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .page-body { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+
+    .brand-selector {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .brand-pill {
+      padding: 8px 18px;
+      border-radius: 100px;
+      border: 1.5px solid var(--teal);
+      background: transparent;
+      color: var(--teal);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .brand-pill:hover { background: var(--teal-faint); }
+    .brand-pill.active {
+      background: var(--teal);
+      color: var(--white);
+    }
+
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+      padding: 14px 20px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--card-shadow);
+    }
+    .filter-group { display: flex; gap: 6px; }
+    .filter-btn {
+      padding: 7px 16px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-light);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .filter-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .filter-btn.active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: var(--white);
+    }
+    .sort-select {
+      padding: 7px 14px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      background: transparent;
+      color: var(--text-light);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+    }
+    .sort-select:focus { border-color: var(--teal); }
+
+    .ad-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) { .ad-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 600px) { .ad-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    .ad-card {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--card-shadow);
+      background: #111;
+      aspect-ratio: 1 / 1;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .ad-card:hover {
+      transform: scale(1.02);
+      box-shadow: var(--card-shadow-hover);
+    }
+    .ad-card img,
+    .ad-card video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .status-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+    .status-badge.active  { background: #2D9B6F; color: #fff; }
+    .status-badge.inactive { background: rgba(107,122,153,0.85); color: #fff; }
+
+    .card-meta {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 24px 12px 10px;
+      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      font-size: 11px;
+      color: rgba(255,255,255,0.88);
+      font-weight: 500;
+    }
+
+    .play-icon {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.22);
+      border: 2px solid rgba(255,255,255,0.5);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .play-icon::after {
+      content: '';
+      display: block;
+      width: 0; height: 0;
+      border-style: solid;
+      border-width: 8px 0 8px 16px;
+      border-color: transparent transparent transparent rgba(255,255,255,0.9);
+      margin-left: 3px;
+    }
+
+    .loading-msg, .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-light);
+      font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <header class="page-header">
+    <a href="index.html" class="back-link">← Playbook</a>
+    <h1 class="page-title">Campaign Gallery</h1>
+  </header>
+
+  <main class="page-body">
+    <nav class="brand-selector" id="brandSelector"></nav>
+
+    <div class="filter-bar" id="filterBar">
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="media" data-value="images">Images</button>
+        <button class="filter-btn" data-filter="media" data-value="videos">Videos</button>
+      </div>
+      <div class="filter-group">
+        <button class="filter-btn active" data-filter="status" data-value="all">All</button>
+        <button class="filter-btn" data-filter="status" data-value="active">Active</button>
+        <button class="filter-btn" data-filter="status" data-value="inactive">Inactive</button>
+      </div>
+      <div class="filter-group">
+        <select class="sort-select" id="sortSelect">
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="longest">Longest running</option>
+          <option value="shortest">Shortest running</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="ad-grid" id="adGrid"></div>
+    <p class="empty-state" id="emptyState" style="display:none">No ads match the current filters.</p>
+  </main>
+
+  <script>
+    /* JS will be added in Tasks 2-3 */
+  </script>
+</body>
+</html>
