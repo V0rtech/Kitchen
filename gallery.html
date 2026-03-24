@@ -502,7 +502,7 @@
       });
     }
 
-    const MIN_IMG_SIZE = 200; // px — anything smaller is an icon/thumbnail, not a real ad image
+    const MIN_IMG_SIZE = 100; // px — reject only true icon/favicon-sized images
 
     function buildImageCard(ad) {
       const isActive = resolveActive(ad);
@@ -514,13 +514,14 @@
       const card = document.createElement('div');
       card.className = 'ad-card';
 
-      // Only _2.jpg is saved by the scraper/uploaded to R2.
-      // Omitting the plain .jpg R2 URL — it causes ERR_BLOCKED_BY_ORB
-      // (browser blocks 404 HTML responses as images), stalling the fallback chain.
+      // Some files are saved as {id}_2.jpg, others as plain {id}.jpg.
+      // Try _2.jpg first (most common), then plain .jpg, then CDN fallback.
       const r2Src2    = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
+      const r2Src     = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
       const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
+      const localSrc  = `campaigns/${dir}/images/${adId}.jpg`;
       const cdnSrc    = (ad.images && ad.images[0]) || null;
-      const srcs = [r2Src2, local2Src, cdnSrc].filter(Boolean);
+      const srcs = [r2Src2, r2Src, local2Src, localSrc, cdnSrc].filter(Boolean);
       let srcIdx = 0;
 
       const img = document.createElement('img');
@@ -565,9 +566,10 @@
       const isActive = resolveActive(ad);
       const days = parseDays(ad.started);
       const dir = state.brand.dir;
-      const videoSrc = R2_BASE
-        ? `${R2_BASE}/campaigns/${dir}/videos/${ad.id}.mp4`
-        : `campaigns/${dir}/videos/${ad.id}.mp4`;
+
+      // Videos are stored as Facebook CDN URLs in video_srcs[], not uploaded to R2.
+      const videoSrc = (ad.video_srcs && ad.video_srcs[0]) || null;
+      if (!videoSrc) return null; // no source available, skip card
 
       const card = document.createElement('div');
       card.className = 'ad-card';
@@ -675,7 +677,7 @@
 
       pageItems.forEach(ad => {
         const card = state.media === 'videos' ? buildVideoCard(ad) : buildImageCard(ad);
-        grid.appendChild(card);
+        if (card) grid.appendChild(card);
       });
 
       renderPagination(filtered.length, state.page, (newPage) => {
