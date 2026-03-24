@@ -1,10 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Campaign Gallery</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,600;0,700;0,900;1,300;1,700&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
   <style>
     :root {
       --teal: #0F6E56;
@@ -24,7 +27,13 @@
       --card-shadow-hover: 0 8px 32px rgba(15, 110, 86, 0.16);
     }
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: 'DM Sans', sans-serif;
@@ -44,13 +53,18 @@
       top: 0;
       z-index: 10;
     }
+
     .back-link {
       color: var(--teal);
       text-decoration: none;
       font-size: 14px;
       font-weight: 500;
     }
-    .back-link:hover { text-decoration: underline; }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
     .page-title {
       font-family: 'Fraunces', serif;
       font-size: 22px;
@@ -58,7 +72,11 @@
       color: var(--text);
     }
 
-    .page-body { padding: 28px 32px; max-width: 1600px; margin: 0 auto; }
+    .page-body {
+      padding: 28px 32px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
 
     .brand-selector {
       display: flex;
@@ -66,6 +84,7 @@
       flex-wrap: wrap;
       margin-bottom: 20px;
     }
+
     .brand-pill {
       padding: 8px 18px;
       border-radius: 100px;
@@ -79,7 +98,11 @@
       transition: all 0.2s ease;
       white-space: nowrap;
     }
-    .brand-pill:hover { background: var(--teal-faint); }
+
+    .brand-pill:hover {
+      background: var(--teal-faint);
+    }
+
     .brand-pill.active {
       background: var(--teal);
       color: var(--white);
@@ -97,7 +120,12 @@
       border-radius: 14px;
       box-shadow: var(--card-shadow);
     }
-    .filter-group { display: flex; gap: 6px; }
+
+    .filter-group {
+      display: flex;
+      gap: 6px;
+    }
+
     .filter-btn {
       padding: 7px 16px;
       border-radius: 100px;
@@ -110,12 +138,18 @@
       cursor: pointer;
       transition: all 0.2s ease;
     }
-    .filter-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+    .filter-btn:hover {
+      border-color: var(--teal);
+      color: var(--teal);
+    }
+
     .filter-btn.active {
       background: var(--teal);
       border-color: var(--teal);
       color: var(--white);
     }
+
     .sort-select {
       padding: 7px 14px;
       border-radius: 100px;
@@ -128,15 +162,28 @@
       cursor: pointer;
       outline: none;
     }
-    .sort-select:focus { border-color: var(--teal); }
+
+    .sort-select:focus {
+      border-color: var(--teal);
+    }
 
     .ad-grid {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 16px;
     }
-    @media (max-width: 900px) { .ad-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 600px) { .ad-grid { grid-template-columns: repeat(2, 1fr); } }
+
+    @media (max-width: 900px) {
+      .ad-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
+      .ad-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
 
     .ad-card {
       position: relative;
@@ -148,10 +195,12 @@
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+
     .ad-card:hover {
       transform: scale(1.02);
       box-shadow: var(--card-shadow-hover);
     }
+
     .ad-card img,
     .ad-card video {
       width: 100%;
@@ -171,44 +220,61 @@
       letter-spacing: 0.03em;
       text-transform: uppercase;
     }
-    .status-badge.active  { background: #2D9B6F; color: #fff; }
-    .status-badge.inactive { background: rgba(107,122,153,0.85); color: #fff; }
+
+    .status-badge.active {
+      background: #2D9B6F;
+      color: #fff;
+    }
+
+    .status-badge.inactive {
+      background: rgba(107, 122, 153, 0.85);
+      color: #fff;
+    }
 
     .card-meta {
       position: absolute;
-      bottom: 0; left: 0; right: 0;
+      bottom: 0;
+      left: 0;
+      right: 0;
       padding: 24px 12px 10px;
-      background: linear-gradient(to top, rgba(0,0,0,0.72) 0%, transparent 100%);
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, transparent 100%);
       display: flex;
       justify-content: space-between;
       align-items: flex-end;
       font-size: 11px;
-      color: rgba(255,255,255,0.88);
+      color: rgba(255, 255, 255, 0.88);
       font-weight: 500;
     }
 
     .play-icon {
       position: absolute;
-      top: 50%; left: 50%;
+      top: 50%;
+      left: 50%;
       transform: translate(-50%, -50%);
-      width: 44px; height: 44px;
-      background: rgba(255,255,255,0.22);
-      border: 2px solid rgba(255,255,255,0.5);
+      width: 44px;
+      height: 44px;
+      background: rgba(255, 255, 255, 0.22);
+      border: 2px solid rgba(255, 255, 255, 0.5);
       border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       pointer-events: none;
     }
+
     .play-icon::after {
       content: '';
       display: block;
-      width: 0; height: 0;
+      width: 0;
+      height: 0;
       border-style: solid;
       border-width: 8px 0 8px 16px;
-      border-color: transparent transparent transparent rgba(255,255,255,0.9);
+      border-color: transparent transparent transparent rgba(255, 255, 255, 0.9);
       margin-left: 3px;
     }
 
-    .loading-msg, .empty-state {
+    .loading-msg,
+    .empty-state {
       text-align: center;
       padding: 60px 20px;
       color: var(--text-light);
@@ -216,6 +282,7 @@
     }
   </style>
 </head>
+
 <body>
   <header class="page-header">
     <a href="index.html" class="back-link">← Playbook</a>
@@ -252,21 +319,21 @@
   <script>
     // Step 1: BRANDS constant and state object
     const BRANDS = [
-      { name: 'Caraway',         dir: 'Caraway' },
-      { name: 'Our Place',       dir: 'our-place' },
-      { name: 'HexClad',         dir: 'hexclad' },
-      { name: 'Made In',         dir: 'made-in' },
-      { name: 'Great Jones',     dir: 'great-jones' },
-      { name: 'Misen',           dir: 'misen' },
+      { name: 'Caraway', dir: 'Caraway' },
+      { name: 'Our Place', dir: 'our-place' },
+      { name: 'HexClad', dir: 'hexclad' },
+      { name: 'Made In', dir: 'made-in' },
+      { name: 'Great Jones', dir: 'great-jones' },
+      { name: 'Misen', dir: 'misen' },
       { name: 'Williams Sonoma', dir: 'williams-sonoma' },
-      { name: 'Sur La Table',    dir: 'sur-la-table' },
+      { name: 'Sur La Table', dir: 'sur-la-table' },
       { name: 'Lodge Cast Iron', dir: 'lodge' },
-      { name: 'Wayfair',         dir: 'wayfair' },
-      { name: 'Crate and Barrel',dir: 'crate-barrel' },
-      { name: 'OXO',             dir: 'oxo' },
-      { name: 'Food52',          dir: 'food52' },
-      { name: 'Bellroy',         dir: 'bellroy' },
-      { name: 'Allbirds',        dir: 'allbirds' },
+      { name: 'Wayfair', dir: 'wayfair' },
+      { name: 'Crate and Barrel', dir: 'crate-barrel' },
+      { name: 'OXO', dir: 'oxo' },
+      { name: 'Food52', dir: 'food52' },
+      { name: 'Bellroy', dir: 'bellroy' },
+      { name: 'Allbirds', dir: 'allbirds' },
     ];
 
     let state = {
@@ -279,7 +346,7 @@
     // Step 2: loadBrand() function
     async function loadBrand(brand) {
       const file = state.media === 'videos' ? 'video_ads.json' : 'ads.json';
-      const url  = `campaigns/${brand.dir}/${file}`;
+      const url = `campaigns/${brand.dir}/${file}`;
       try {
         const res = await fetch(url);
         if (!res.ok) return [];
@@ -291,7 +358,7 @@
 
     // Step 3: resolveActive() helper
     function resolveActive(ad) {
-      if (ad.active === true)  return true;
+      if (ad.active === true) return true;
       if (ad.active === false) return false;
       const m = (ad.text || '').match(/\n(Active|Inactive)\n/);
       if (m) return m[1] === 'Active';
@@ -307,4 +374,5 @@
     }
   </script>
 </body>
+
 </html>
