@@ -373,6 +373,197 @@
       if (isNaN(d)) return null;
       return Math.floor((Date.now() - d) / 86_400_000);
     }
+
+    function renderBrandSelector() {
+      const nav = document.getElementById('brandSelector');
+      nav.innerHTML = '';
+      BRANDS.forEach(brand => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'brand-pill' + (brand === state.brand ? ' active' : '');
+        btn.textContent = brand.name;
+        btn.addEventListener('click', () => {
+          state.brand = brand;
+          renderBrandSelector();
+          loadAndRender();
+        });
+        nav.appendChild(btn);
+      });
+    }
+
+    function buildImageCard(ad) {
+      const isActive = resolveActive(ad);
+      const days     = parseDays(ad.started);
+
+      const adId      = ad.id;
+      const dir       = state.brand.dir;
+      const localSrc  = `campaigns/${dir}/images/${adId}.jpg`;
+      const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
+      const cdnSrc    = (ad.images || [])[0] || '';
+
+      const card = document.createElement('div');
+      card.className = 'ad-card';
+
+      const img = document.createElement('img');
+      img.alt = '';
+      img.loading = 'lazy';
+      img.src = localSrc;
+      img.onerror = function() {
+        if (!img.src.includes('_2') && !img.src.startsWith('http')) {
+          img.src = local2Src;
+        } else if (cdnSrc && img.src !== cdnSrc) {
+          img.src = cdnSrc;
+        }
+        img.onerror = null;
+      };
+      card.appendChild(img);
+
+      appendCardOverlays(card, isActive, ad.started, days);
+      return card;
+    }
+
+    function buildVideoCard(ad) {
+      const isActive = resolveActive(ad);
+      const days     = parseDays(ad.started);
+      const src      = (ad.video_srcs || [])[0] || '';
+
+      const card = document.createElement('div');
+      card.className = 'ad-card';
+
+      if (src) {
+        const video = document.createElement('video');
+        video.src = src;
+        video.muted = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        card.addEventListener('mouseenter', () => video.play().catch(() => {}));
+        card.addEventListener('mouseleave', () => { video.pause(); video.currentTime = 0; });
+        card.appendChild(video);
+      } else {
+        card.style.background = '#2a2a2a';
+      }
+
+      const play = document.createElement('div');
+      play.className = 'play-icon';
+      card.appendChild(play);
+
+      appendCardOverlays(card, isActive, ad.started, days);
+      return card;
+    }
+
+    function appendCardOverlays(card, isActive, started, days) {
+      if (isActive !== null) {
+        const badge = document.createElement('span');
+        badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
+        badge.textContent = isActive ? 'Active' : 'Inactive';
+        card.appendChild(badge);
+      }
+
+      const meta = document.createElement('div');
+      meta.className = 'card-meta';
+
+      const dateSpan = document.createElement('span');
+      dateSpan.textContent = started || '';
+      meta.appendChild(dateSpan);
+
+      if (isActive && days !== null) {
+        const daysSpan = document.createElement('span');
+        daysSpan.textContent = `${days} days live`;
+        meta.appendChild(daysSpan);
+      }
+
+      card.appendChild(meta);
+    }
+
+    function applyFiltersAndSort(ads) {
+      let out = ads.filter(ad => {
+        if (state.status === 'all') return true;
+        const a = resolveActive(ad);
+        if (state.status === 'active')   return a === true;
+        if (state.status === 'inactive') return a === false;
+        return true;
+      });
+
+      const getDays = ad => parseDays(ad.started);
+      const isAct   = ad => resolveActive(ad) === true;
+
+      if (state.sort === 'newest') {
+        out.sort((a, b) => (getDays(a) ?? Infinity) - (getDays(b) ?? Infinity));
+      } else if (state.sort === 'oldest') {
+        out.sort((a, b) => (getDays(b) ?? -1) - (getDays(a) ?? -1));
+      } else if (state.sort === 'longest') {
+        out.sort((a, b) => {
+          const aAct = isAct(a), bAct = isAct(b);
+          if (aAct !== bAct) return aAct ? -1 : 1;
+          return (getDays(b) ?? -1) - (getDays(a) ?? -1);
+        });
+      } else if (state.sort === 'shortest') {
+        out.sort((a, b) => {
+          const aAct = isAct(a), bAct = isAct(b);
+          if (aAct !== bAct) return aAct ? -1 : 1;
+          return (getDays(a) ?? Infinity) - (getDays(b) ?? Infinity);
+        });
+      }
+
+      return out;
+    }
+
+    function renderGrid(ads) {
+      const grid  = document.getElementById('adGrid');
+      const empty = document.getElementById('emptyState');
+      const filtered = applyFiltersAndSort(ads);
+
+      grid.innerHTML = '';
+      if (filtered.length === 0) {
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+
+      filtered.forEach(ad => {
+        const card = state.media === 'videos' ? buildVideoCard(ad) : buildImageCard(ad);
+        grid.appendChild(card);
+      });
+    }
+
+    let _currentAds = [];
+
+    async function loadAndRender() {
+      const grid = document.getElementById('adGrid');
+      grid.innerHTML = '<p class="loading-msg">Loading\u2026</p>';
+      document.getElementById('emptyState').style.display = 'none';
+      _currentAds = await loadBrand(state.brand);
+      renderGrid(_currentAds);
+    }
+
+    function init() {
+      renderBrandSelector();
+      wireFilters();
+      loadAndRender();
+    }
+
+    function wireFilters() {
+      document.getElementById('filterBar').addEventListener('click', e => {
+        const btn = e.target.closest('.filter-btn');
+        if (!btn) return;
+        const { filter, value } = btn.dataset;
+        btn.closest('.filter-group').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state[filter] = value;
+        if (filter === 'media') {
+          loadAndRender();
+        } else {
+          renderGrid(_currentAds);
+        }
+      });
+
+      document.getElementById('sortSelect').addEventListener('change', e => {
+        state.sort = e.target.value;
+        renderGrid(_currentAds);
+      });
+    }
+
+    init();
   </script>
 </body>
 
