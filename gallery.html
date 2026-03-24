@@ -369,6 +369,10 @@
   </div>
 
   <script>
+    // Set to your R2 public URL once uploaded, e.g. "https://pub-XXXX.r2.dev"
+    // Leave empty string to skip R2 and use local/CDN fallbacks only.
+    const R2_BASE = "";
+
     // Step 1: BRANDS constant and state object
     const BRANDS = [
       { name: 'Caraway', dir: 'Caraway' },
@@ -455,8 +459,10 @@
       const card = document.createElement('div');
       card.className = 'ad-card';
 
+      const r2Src  = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
+      const r2Src2 = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
       const cdnSrc = (ad.images && ad.images[0]) || null;
-      const srcs = [localSrc, local2Src, cdnSrc].filter(Boolean);
+      const srcs = [r2Src, r2Src2, localSrc, local2Src, cdnSrc].filter(Boolean);
       let srcIdx = 0;
 
       const img = document.createElement('img');
@@ -487,13 +493,16 @@
     function buildVideoCard(ad) {
       const isActive = resolveActive(ad);
       const days     = parseDays(ad.started);
-      const localSrc = `campaigns/${state.brand.dir}/videos/${ad.id}.mp4`;
+      const dir      = state.brand.dir;
+      const videoSrc = R2_BASE
+        ? `${R2_BASE}/campaigns/${dir}/videos/${ad.id}.mp4`
+        : `campaigns/${dir}/videos/${ad.id}.mp4`;
 
       const card = document.createElement('div');
       card.className = 'ad-card';
 
       const video = document.createElement('video');
-      video.src = localSrc;
+      video.src = videoSrc;
       video.muted = true;
       video.playsInline = true;
       video.preload = 'metadata';
