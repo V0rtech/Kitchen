@@ -31,7 +31,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
 WORKERS      = 3                # Concurrent browsers (keep <= 4 to avoid detection)
-MAX_IMAGES   = 150              # Max images downloaded per brand (ads.json has everything)
+MAX_IMAGES   = 1000              # Max images downloaded per brand (ads.json has everything)
 MAX_SCROLLS  = 80               # Safety cap on scroll iterations
 SCROLL_PAUSE = 2.5              # Seconds between scrolls
 HEADLESS     = True             # False = visible browser (handy for debugging)
@@ -46,18 +46,18 @@ MIN_DATE     = datetime(2023, 1, 1)
 BRANDS = [
     {"name": "Caraway",         "slug": "caraway",         "page_id": "2290435917939387"},
     {"name": "Our Place",       "slug": "our-place",       "page_id": "247732222787053"},
-    {"name": "HexClad",         "slug": "hexclad",         "page_id": ""},
+    {"name": "HexClad",         "slug": "hexclad",         "page_id": "306050696452078"},
     {"name": "Made In",         "slug": "made-in",         "page_id": "1360608127355960"},
     {"name": "Great Jones",     "slug": "great-jones",     "page_id": "1826080967456334"},
-    {"name": "Misen",           "slug": "misen",           "page_id": ""},
-    {"name": "Williams Sonoma", "slug": "williams-sonoma", "page_id": ""},
-    {"name": "Sur La Table",    "slug": "sur-la-table",    "page_id": ""},
-    {"name": "Lodge Cast Iron", "slug": "lodge",           "page_id": ""},
+    {"name": "Misen",           "slug": "misen",           "page_id": "494944417330084"},
+    {"name": "Williams Sonoma", "slug": "williams-sonoma", "page_id": "36343869811"},
+    {"name": "Sur La Table",    "slug": "sur-la-table",    "page_id": "136304690471"},
+    {"name": "Lodge Cast Iron", "slug": "lodge",           "page_id": "121779540495"},
     {"name": "Wayfair",         "slug": "wayfair",         "page_id": "215686331786877"},
     {"name": "Crate and Barrel","slug": "crate-barrel",    "page_id": "7769066516"},
     {"name": "OXO",             "slug": "oxo",             "page_id": "78294151872"},
     {"name": "Food52",          "slug": "food52",          "page_id": "133148554015"},
-    {"name": "Bellroy",         "slug": "bellroy",         "page_id": ""},
+    {"name": "Bellroy",         "slug": "bellroy",         "page_id": "113833593676"},
     {"name": "Allbirds",        "slug": "allbirds",        "page_id": "778794852137593"},
 ]
 
@@ -150,7 +150,7 @@ SCRAPE_JS = """
         ad.snapshot_url = links.length ? links[0].href : '';
 
         // Active status — appears as a standalone line before Library ID
-        const activeM = card.innerText.match(/\n(Active|Inactive)\n/);
+        const activeM = card.innerText.match(/\\n(Active|Inactive)\\n/);
         ad.active = activeM ? activeM[1] === 'Active' : null;
 
         // Start date (parsed from card text)
@@ -186,28 +186,42 @@ def detect_ext(url: str) -> str:
 
 
 def download_image(url: str, dest: Path) -> bool:
-    try:
-        r = requests.get(
-            url, timeout=20, stream=True,
-            headers={"User-Agent": UA, "Referer": "https://www.facebook.com/"}
-        )
-        if r.status_code != 200:
+    for attempt in range(3):
+        try:
+            r = requests.get(
+                url, timeout=40, stream=True,
+                headers={"User-Agent": UA, "Referer": "https://www.facebook.com/"}
+            )
+            if r.status_code == 429:
+                wait = 2 ** attempt * 3  # 3s, 6s, 12s
+                warnings.warn(f"Rate limited — waiting {wait}s before retry")
+                time.sleep(wait)
+                continue
+            if r.status_code != 200:
+                warnings.warn(f"HTTP {r.status_code} for {url[:80]}")
+                return False
+            ct = r.headers.get("Content-Type", "")
+            if "image" not in ct and "octet" not in ct:
+                warnings.warn(f"Unexpected Content-Type '{ct}' for {url[:80]}")
+                return False
+            with open(dest, "wb") as f:
+                for chunk in r.iter_content(8192):
+                    f.write(chunk)
+            if dest.stat().st_size < 3_000:
+                dest.unlink(missing_ok=True)
+                warnings.warn(f"File too small (likely placeholder) for {url[:80]}")
+                return False
+            return True
+        except requests.exceptions.Timeout:
+            warnings.warn(f"Timeout on attempt {attempt+1} for {url[:80]}")
+            if dest.exists():
+                dest.unlink(missing_ok=True)
+        except Exception as exc:
+            warnings.warn(f"Download error: {exc}")
+            if dest.exists():
+                dest.unlink(missing_ok=True)
             return False
-        ct = r.headers.get("Content-Type", "")
-        if "image" not in ct and "octet" not in ct:
-            return False
-        with open(dest, "wb") as f:
-            for chunk in r.iter_content(8192):
-                f.write(chunk)
-        if dest.stat().st_size < 3_000:
-            dest.unlink(missing_ok=True)
-            return False
-        return True
-    except Exception as exc:
-        warnings.warn(str(exc))
-        if dest.exists():
-            dest.unlink(missing_ok=True)
-        return False
+    return False
 
 
 # ─── POPUP DISMISSAL ──────────────────────────────────────────────────────────
@@ -265,7 +279,7 @@ def scrape_brand(brand: dict) -> list[dict]:
         stable      = 0
 
         for i in range(MAX_SCROLLS):
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.evaluate("var el = document.scrollingElement || document.body; if (el) window.scrollTo(0, el.scrollHeight)")
             time.sleep(SCROLL_PAUSE)
             dismiss_popups(page)
 
