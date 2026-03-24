@@ -471,7 +471,9 @@
       const r2Src = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
       const r2Src2 = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
       const cdnSrc = (ad.images && ad.images[0]) || null;
-      const srcs = [r2Src, r2Src2, localSrc, local2Src, cdnSrc].filter(Boolean);
+      // _2.jpg is the only format the scraper saves locally/uploads to R2,
+      // so try it first to avoid a guaranteed 404 on the plain .jpg path.
+      const srcs = [r2Src2, r2Src, local2Src, localSrc, cdnSrc].filter(Boolean);
       let srcIdx = 0;
 
       const img = document.createElement('img');
