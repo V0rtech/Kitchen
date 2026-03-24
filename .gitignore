@@ -1,5 +1,6 @@
 upload_to_r2.py
 .claude/
 docs/
+check_r2.py
 *.env
 .env*
