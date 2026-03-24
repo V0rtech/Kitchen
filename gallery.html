@@ -250,7 +250,61 @@
   </main>
 
   <script>
-    /* JS will be added in Tasks 2-3 */
+    // Step 1: BRANDS constant and state object
+    const BRANDS = [
+      { name: 'Caraway',         dir: 'Caraway' },
+      { name: 'Our Place',       dir: 'our-place' },
+      { name: 'HexClad',         dir: 'hexclad' },
+      { name: 'Made In',         dir: 'made-in' },
+      { name: 'Great Jones',     dir: 'great-jones' },
+      { name: 'Misen',           dir: 'misen' },
+      { name: 'Williams Sonoma', dir: 'williams-sonoma' },
+      { name: 'Sur La Table',    dir: 'sur-la-table' },
+      { name: 'Lodge Cast Iron', dir: 'lodge' },
+      { name: 'Wayfair',         dir: 'wayfair' },
+      { name: 'Crate and Barrel',dir: 'crate-barrel' },
+      { name: 'OXO',             dir: 'oxo' },
+      { name: 'Food52',          dir: 'food52' },
+      { name: 'Bellroy',         dir: 'bellroy' },
+      { name: 'Allbirds',        dir: 'allbirds' },
+    ];
+
+    let state = {
+      brand: BRANDS[0],
+      media: 'images',
+      status: 'all',
+      sort: 'newest',
+    };
+
+    // Step 2: loadBrand() function
+    async function loadBrand(brand) {
+      const file = state.media === 'videos' ? 'video_ads.json' : 'ads.json';
+      const url  = `campaigns/${brand.dir}/${file}`;
+      try {
+        const res = await fetch(url);
+        if (!res.ok) return [];
+        return await res.json();
+      } catch {
+        return [];
+      }
+    }
+
+    // Step 3: resolveActive() helper
+    function resolveActive(ad) {
+      if (ad.active === true)  return true;
+      if (ad.active === false) return false;
+      const m = (ad.text || '').match(/\n(Active|Inactive)\n/);
+      if (m) return m[1] === 'Active';
+      return null;
+    }
+
+    // Step 4: parseDays() helper
+    function parseDays(started) {
+      if (!started) return null;
+      const d = new Date(started);
+      if (isNaN(d)) return null;
+      return Math.floor((Date.now() - d) / 86_400_000);
+    }
   </script>
 </body>
 </html>
