@@ -567,9 +567,13 @@
       const days = parseDays(ad.started);
       const dir = state.brand.dir;
 
-      // Videos are stored as Facebook CDN URLs in video_srcs[], not uploaded to R2.
-      const videoSrc = (ad.video_srcs && ad.video_srcs[0]) || null;
-      if (!videoSrc) return null; // no source available, skip card
+      // Videos are uploaded to R2 as video_0001.mp4, video_0002.mp4… (index-based).
+      // Fall back to the CDN URL from video_srcs[] if R2 fails.
+      const paddedIdx = String(ad.index).padStart(4, '0');
+      const r2VideoSrc  = R2_BASE ? `${R2_BASE}/campaigns/${dir}/videos/video_${paddedIdx}.mp4` : null;
+      const cdnVideoSrc = (ad.video_srcs && ad.video_srcs[0]) || null;
+      const videoSrc = r2VideoSrc || cdnVideoSrc;
+      if (!videoSrc) return null;
 
       const card = document.createElement('div');
       card.className = 'ad-card';
