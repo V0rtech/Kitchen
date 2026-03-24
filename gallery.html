@@ -411,10 +411,10 @@
       const fallbacks = [local2Src, cdnSrc].filter(Boolean);
       let fbIdx = 0;
       img.onerror = function() {
+        img.onerror = null; // clear before assigning new src to prevent re-entrant fire
         if (fbIdx < fallbacks.length) {
+          img.onerror = arguments.callee; // re-arm for next failure
           img.src = fallbacks[fbIdx++];
-        } else {
-          img.onerror = null;
         }
       };
       card.appendChild(img);
@@ -491,7 +491,7 @@
       if (state.sort === 'newest') {
         out.sort((a, b) => (getDays(a) ?? Infinity) - (getDays(b) ?? Infinity));
       } else if (state.sort === 'oldest') {
-        out.sort((a, b) => (getDays(b) ?? -1) - (getDays(a) ?? -1));
+        out.sort((a, b) => (getDays(b) ?? -Infinity) - (getDays(a) ?? -Infinity));
       } else if (state.sort === 'longest') {
         out.sort((a, b) => {
           const aAct = isAct(a), bAct = isAct(b);
@@ -528,12 +528,16 @@
     }
 
     let _currentAds = [];
+    let _renderGen = 0;
 
     async function loadAndRender() {
+      const gen = ++_renderGen;
       const grid = document.getElementById('adGrid');
       grid.innerHTML = '<p class="loading-msg">Loading\u2026</p>';
       document.getElementById('emptyState').style.display = 'none';
-      _currentAds = await loadBrand(state.brand);
+      const ads = await loadBrand(state.brand);
+      if (gen !== _renderGen) return; // superseded by a later call
+      _currentAds = ads;
       renderGrid(_currentAds);
     }
 
@@ -550,6 +554,7 @@
         const { filter, value } = btn.dataset;
         btn.closest('.filter-group').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
+        if (filter !== 'media' && filter !== 'status') return;
         state[filter] = value;
         if (filter === 'media') {
           loadAndRender();
