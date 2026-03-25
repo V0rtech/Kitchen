@@ -395,11 +395,17 @@
 
     <div class="filter-bar" id="filterBar">
       <div class="filter-group">
-        <button type="button" class="filter-btn active" data-filter="media" data-value="images">Images</button>
-        <button type="button" class="filter-btn" data-filter="media" data-value="videos">Videos</button>
+        <button type="button" class="filter-btn active" data-filter="media" data-value="images">All Media</button>
+        <button type="button" class="filter-btn" data-filter="media" data-value="videos">Videos Only</button>
       </div>
       <div class="filter-group">
-        <button type="button" class="filter-btn active" data-filter="status" data-value="all">All</button>
+        <button type="button" class="filter-btn active" data-filter="country" data-value="all">All Countries</button>
+        <button type="button" class="filter-btn" data-filter="country" data-value="US">US</button>
+        <button type="button" class="filter-btn" data-filter="country" data-value="CA">Canada</button>
+        <button type="button" class="filter-btn" data-filter="country" data-value="GB">UK</button>
+      </div>
+      <div class="filter-group">
+        <button type="button" class="filter-btn active" data-filter="status" data-value="all">All Status</button>
         <button type="button" class="filter-btn" data-filter="status" data-value="active">Active</button>
         <button type="button" class="filter-btn" data-filter="status" data-value="inactive">Inactive</button>
       </div>
@@ -427,29 +433,12 @@
     const R2_BASE = "https://pub-67f4bab315e9467d90ae1d113cac20f7.r2.dev";
     const PAGE_SIZE = 50;
 
-    // Step 1: BRANDS constant and state object
-    const BRANDS = [
-      { name: 'Caraway', dir: 'caraway' },
-      { name: 'Our Place', dir: 'our-place' },
-      { name: 'HexClad', dir: 'hexclad' },
-      { name: 'Made In', dir: 'made-in' },
-      { name: 'Great Jones', dir: 'great-jones' },
-      { name: 'Misen', dir: 'misen' },
-      { name: 'Williams Sonoma', dir: 'williams-sonoma' },
-      { name: 'Sur La Table', dir: 'sur-la-table' },
-      { name: 'Lodge Cast Iron', dir: 'lodge' },
-      { name: 'Wayfair', dir: 'wayfair' },
-      { name: 'Crate and Barrel', dir: 'crate-barrel' },
-      { name: 'OXO', dir: 'oxo' },
-      { name: 'Food52', dir: 'food52' },
-      { name: 'Bellroy', dir: 'bellroy' },
-      { name: 'Allbirds', dir: 'allbirds' },
-    ];
-
+    let BRANDS = [];
     let state = {
-      brand: BRANDS[0],
+      brand: null,
       media: 'images',
       status: 'all',
+      country: 'all',
       sort: 'newest',
       page: 1,
     };
@@ -485,6 +474,18 @@
       return Math.floor((Date.now() - d) / 86_400_000);
     }
 
+    // Extract start/stop dates from the raw text blob.
+    // Active ads:   "Started running on Jan 22, 2026"  → started only
+    // Inactive ads: "Jul 28, 2024 - Jul 1, 2025"       → both
+    function parseDatesFromText(text) {
+      if (!text) return { started: null, stopped: null };
+      const rangeM = text.match(/\b([A-Z][a-z]+ \d{1,2}, \d{4})\s*-\s*([A-Z][a-z]+ \d{1,2}, \d{4})\b/);
+      if (rangeM) return { started: rangeM[1], stopped: rangeM[2] };
+      const startM = text.match(/Started running on ([A-Z][a-z]+ \d{1,2}, \d{4})/);
+      if (startM) return { started: startM[1], stopped: null };
+      return { started: null, stopped: null };
+    }
+
     function renderBrandSelector() {
       const nav = document.getElementById('brandSelector');
       nav.innerHTML = '';
@@ -505,9 +506,6 @@
     const MIN_IMG_SIZE = 100; // px — reject only true icon/favicon-sized images
 
     function buildImageCard(ad) {
-      const isActive = resolveActive(ad);
-      const days = parseDays(ad.started);
-
       const adId = ad.id;
       const dir = state.brand.dir;
 
@@ -558,13 +556,11 @@
         openLightbox(expanded);
       });
 
-      appendCardOverlays(card, isActive, ad.started, days);
+      appendCardOverlays(card, ad);
       return card;
     }
 
     function buildVideoCard(ad) {
-      const isActive = resolveActive(ad);
-      const days = parseDays(ad.started);
       const dir = state.brand.dir;
 
       // Videos are uploaded to R2 as video_0001.mp4, video_0002.mp4… (index-based).
@@ -602,11 +598,13 @@
         openLightbox(expanded);
       });
 
-      appendCardOverlays(card, isActive, ad.started, days);
+      appendCardOverlays(card, ad);
       return card;
     }
 
-    function appendCardOverlays(card, isActive, started, days) {
+    function appendCardOverlays(card, ad) {
+      const isActive = resolveActive(ad);
+
       if (isActive !== null) {
         const badge = document.createElement('span');
         badge.className = 'status-badge ' + (isActive ? 'active' : 'inactive');
@@ -617,14 +615,44 @@
       const meta = document.createElement('div');
       meta.className = 'card-meta';
 
-      const dateSpan = document.createElement('span');
-      dateSpan.textContent = started || '';
-      meta.appendChild(dateSpan);
+      // Resolve the best available start date and optional stop date.
+      // For active ads `ad.started` is populated; for inactive ads it's often
+      // empty and the date range lives in the raw `text` blob instead.
+      const textDates = parseDatesFromText(ad.text);
+      const started = ad.started || textDates.started;
+      const stopped = ad.stopped || textDates.stopped;
 
-      if (isActive && days !== null) {
-        const daysSpan = document.createElement('span');
-        daysSpan.textContent = `${days} days live`;
-        meta.appendChild(daysSpan);
+      if (isActive === false && started && stopped) {
+        // Inactive: show full run range + duration
+        const startD = new Date(started);
+        const stopD  = new Date(stopped);
+        const rangeSpan = document.createElement('span');
+        rangeSpan.textContent = `${started} – ${stopped}`;
+        meta.appendChild(rangeSpan);
+
+        if (!isNaN(startD) && !isNaN(stopD)) {
+          const runDays = Math.round((stopD - startD) / 86_400_000);
+          const daysSpan = document.createElement('span');
+          daysSpan.textContent = `${runDays} days`;
+          meta.appendChild(daysSpan);
+        }
+      } else if (isActive === false && started) {
+        // Inactive but only start date available
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = started;
+        meta.appendChild(dateSpan);
+      } else {
+        // Active (or unknown status): show start date + days live
+        const dateSpan = document.createElement('span');
+        dateSpan.textContent = started || '';
+        meta.appendChild(dateSpan);
+
+        const days = parseDays(started);
+        if (isActive && days !== null) {
+          const daysSpan = document.createElement('span');
+          daysSpan.textContent = `${days} days live`;
+          meta.appendChild(daysSpan);
+        }
       }
 
       card.appendChild(meta);
@@ -632,10 +660,17 @@
 
     function applyFiltersAndSort(ads) {
       let out = ads.filter(ad => {
-        if (state.status === 'all') return true;
+        // 1. Status Filter
         const a = resolveActive(ad);
-        if (state.status === 'active') return a === true;
-        if (state.status === 'inactive') return a === false;
+        if (state.status === 'active' && a !== true) return false;
+        if (state.status === 'inactive' && a !== false) return false;
+
+        // 2. Country Filter
+        if (state.country !== 'all') {
+          const countries = ad.countries || ['US']; // fallback
+          if (!countries.includes(state.country)) return false;
+        }
+
         return true;
       });
 
@@ -755,10 +790,23 @@
       renderGrid(_currentAds, true);
     }
 
-    function init() {
-      renderBrandSelector();
-      wireFilters();
-      loadAndRender();
+    async function init() {
+      try {
+        const res = await fetch('data/brands.json');
+        if (!res.ok) throw new Error("Failed to load brands.json");
+        BRANDS = await res.json();
+        // Map 'slug' to 'dir' for compatibility with existing code
+        BRANDS.forEach(b => b.dir = b.slug);
+        
+        state.brand = BRANDS[0];
+        
+        renderBrandSelector();
+        wireFilters();
+        loadAndRender();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('adGrid').innerHTML = '<p class="error-msg">Error: Could not load brand list.</p>';
+      }
     }
 
     function wireFilters() {
@@ -768,7 +816,7 @@
         const { filter, value } = btn.dataset;
         btn.closest('.filter-group').querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
-        if (filter !== 'media' && filter !== 'status') return;
+        if (filter !== 'media' && filter !== 'status' && filter !== 'country') return;
         state[filter] = value;
         if (filter === 'media') {
           loadAndRender();
