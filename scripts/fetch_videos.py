@@ -35,8 +35,8 @@ BASE_DIR      = Path(__file__).resolve().parent.parent
 DATA_DIR      = BASE_DIR / "data"
 CAMPAIGNS_DIR = BASE_DIR / "campaigns"
 
-WORKERS      = 10                # Concurrent browsers
-MAX_VIDEOS   = 1000              # Max video files saved per brand
+WORKERS      = 5                # Concurrent browsers
+MAX_VIDEOS   = 300              # Max video files saved per brand
 MAX_SCROLLS  = 80               # Safety cap on scroll iterations
 SCROLL_PAUSE = 5.0              # Slightly longer pause
 HEADLESS     = True

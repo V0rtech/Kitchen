@@ -33,7 +33,7 @@ BASE_DIR      = Path(__file__).resolve().parent.parent
 DATA_DIR      = BASE_DIR / "data"
 CAMPAIGNS_DIR = BASE_DIR / "campaigns"
 
-WORKERS      = 10                # Concurrent browsers
+WORKERS      = 5                # Concurrent browsers
 MAX_IMAGES   = 1000              # Max images downloaded per brand
 MAX_SCROLLS  = 80               # Safety cap on scroll iterations
 SCROLL_PAUSE = 2.5              # Seconds between scrolls
