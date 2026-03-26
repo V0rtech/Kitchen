@@ -514,11 +514,11 @@
 
       // Some files are saved as {id}_2.jpg, others as plain {id}.jpg.
       // Try _2.jpg first (most common), then plain .jpg, then CDN fallback.
-      const r2Src2    = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
-      const r2Src     = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
+      const r2Src2 = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}_2.jpg` : null;
+      const r2Src = R2_BASE ? `${R2_BASE}/campaigns/${dir}/images/${adId}.jpg` : null;
       const local2Src = `campaigns/${dir}/images/${adId}_2.jpg`;
-      const localSrc  = `campaigns/${dir}/images/${adId}.jpg`;
-      const cdnSrc    = (ad.images && ad.images[0]) || null;
+      const localSrc = `campaigns/${dir}/images/${adId}.jpg`;
+      const cdnSrc = (ad.images && ad.images[0]) || null;
       const srcs = [r2Src2, r2Src, local2Src, localSrc, cdnSrc].filter(Boolean);
       let srcIdx = 0;
 
@@ -527,7 +527,7 @@
 
       img.onload = function () {
         // Reject icon-sized images (thumbnails / 60×60 placeholders)
-        if (img.naturalWidth < MIN_IMG_SIZE || img.naturalHeight < MIN_IMG_SIZE) {
+        if (img.naturalWidth < MIN_IMG_SIZE && img.naturalHeight < MIN_IMG_SIZE) {
           srcIdx++;
           if (srcIdx < srcs.length) {
             img.src = srcs[srcIdx]; // try next source
@@ -566,7 +566,7 @@
       // Videos are uploaded to R2 as video_0001.mp4, video_0002.mp4… (index-based).
       // Fall back to the CDN URL from video_srcs[] if R2 fails.
       const paddedIdx = String(ad.index).padStart(4, '0');
-      const r2VideoSrc  = R2_BASE ? `${R2_BASE}/campaigns/${dir}/videos/video_${paddedIdx}.mp4` : null;
+      const r2VideoSrc = R2_BASE ? `${R2_BASE}/campaigns/${dir}/videos/video_${paddedIdx}.mp4` : null;
       const cdnVideoSrc = (ad.video_srcs && ad.video_srcs[0]) || null;
       const videoSrc = r2VideoSrc || cdnVideoSrc;
       if (!videoSrc) return null;
@@ -625,7 +625,7 @@
       if (isActive === false && started && stopped) {
         // Inactive: show full run range + duration
         const startD = new Date(started);
-        const stopD  = new Date(stopped);
+        const stopD = new Date(stopped);
         const rangeSpan = document.createElement('span');
         rangeSpan.textContent = `${started} – ${stopped}`;
         meta.appendChild(rangeSpan);
@@ -797,9 +797,9 @@
         BRANDS = await res.json();
         // Map 'slug' to 'dir' for compatibility with existing code
         BRANDS.forEach(b => b.dir = b.slug);
-        
+
         state.brand = BRANDS[0];
-        
+
         renderBrandSelector();
         wireFilters();
         loadAndRender();
