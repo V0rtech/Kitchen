@@ -4,3 +4,5 @@ docs/
 check_r2.py
 *.env
 .env*
+campaigns/**/images/
+campaigns/**/videos/
